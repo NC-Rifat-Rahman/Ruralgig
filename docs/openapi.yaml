@@ -1,0 +1,701 @@
+openapi: 3.0.3
+info:
+  title: RuralGig API
+  description: >
+    AI-Powered Micro-Freelance Platform for Rural & Underserved Talent in
+    Bangladesh. Connects skilled workers with businesses needing short-term task
+    help.
+  version: 0.1.0
+  contact:
+    name: RuralGig Engineering
+servers:
+  - url: http://localhost:3000
+    description: Local development (api-gateway)
+  - url: https://api.ruralgig.com
+    description: Production
+
+tags:
+  - name: Auth
+    description: Worker and business registration & authentication
+  - name: Tasks
+    description: Task lifecycle — post, browse, claim
+  - name: Workers
+    description: Worker profiles and skill data
+
+# ─────────────────────────────────────────────
+# PATHS
+# ─────────────────────────────────────────────
+paths:
+
+  # ── 1. POST /auth/register ──────────────────
+  /auth/register:
+    post:
+      tags: [ Auth ]
+      summary: Register a new worker or business account
+      description: >
+        Creates a new user account. Workers register with a phone number and
+        receive an OTP for verification. Businesses register with an email and
+        password. The `role` field in the request body determines which flow is
+        triggered.
+      operationId: registerUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterRequest"
+            examples:
+              worker:
+                summary: Worker registration (phone + OTP flow)
+                value:
+                  role: WORKER
+                  phone: "+8801711234567"
+                  name: "Rahim Uddin"
+                  location:
+                    district: "Mymensingh"
+                    division: "Mymensingh"
+              business:
+                summary: Business registration (email + password flow)
+                value:
+                  role: BUSINESS
+                  email: "hr@techfirm.com.bd"
+                  password: "SecurePass123!"
+                  companyName: "TechFirm BD"
+      responses:
+        "201":
+          description: Account created successfully. OTP sent if worker.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RegisterResponse"
+              examples:
+                worker:
+                  summary: Worker registered — OTP dispatched
+                  value:
+                    userId: "usr_01HXQ2K9MNTW3R7VBPQ4Z8F6GD"
+                    role: WORKER
+                    otpSent: true
+                    message: "OTP sent to +8801711234567. Valid for 10 minutes."
+                business:
+                  summary: Business registered — tokens issued immediately
+                  value:
+                    userId: "usr_01HXQ2K9MNTW3R7VBPQ4Z8F6GE"
+                    role: BUSINESS
+                    otpSent: false
+                    accessToken: "eyJhbGciOiJIUzI1NiJ9..."
+                    refreshToken: "eyJhbGciOiJIUzI1NiJ9..."
+        "409":
+          description: Phone or email already registered
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                statusCode: 409
+                error: "Conflict"
+                message: "An account with this phone number already exists."
+        "422":
+          description: Validation error — missing or malformed fields
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  # ── 2. POST /tasks ──────────────────────────
+  /tasks:
+    post:
+      tags: [ Tasks ]
+      summary: Business posts a new task
+      description: >
+        Creates a new task posting. The rough `description` field is
+        automatically enhanced by the AI service before saving — the response
+        returns the AI-structured version. Requires a valid BUSINESS JWT.
+      operationId: createTask
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateTaskRequest"
+            example:
+              title: "Data entry for product catalogue"
+              description: "Need someone to type product names and prices from photos into
+                Excel. About 200 rows."
+              budget:
+                amount: 500
+                currency: "BDT"
+              requiredSkills: [ "data-entry", "ms-excel" ]
+              deadline: "2026-05-10T23:59:00Z"
+              location:
+                district: "Chattogram"
+                remote: true
+      responses:
+        "201":
+          description: Task created. Description has been AI-enhanced.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Task"
+              example:
+                id: "tsk_01HXQ4RTBP2M8V5NZJC3Y7KDWE"
+                status: OPEN
+                title: "Data Entry: Product Catalogue (200 rows)"
+                description: "Accurately transcribe product names and prices from provided
+                  photos into a structured Excel spreadsheet. Requires attention
+                  to detail and familiarity with Excel."
+                requiredSkills: [ "data-entry", "ms-excel" ]
+                deliverables: [ "Completed Excel file (.xlsx)", "Accuracy report" ]
+                estimatedHours: 3
+                budget:
+                  amount: 500
+                  currency: "BDT"
+                deadline: "2026-05-10T23:59:00Z"
+                businessId: "usr_01HXQ2K9MNTW3R7VBPQ4Z8F6GE"
+                createdAt: "2026-04-26T08:00:00Z"
+                updatedAt: "2026-04-26T08:00:00Z"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: Only BUSINESS accounts can post tasks
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+    # ── 3. GET /tasks ──────────────────────────
+    get:
+      tags: [ Tasks ]
+      summary: Browse and filter the task feed
+      description: >
+        Returns a paginated list of OPEN tasks. Workers see tasks ranked by the
+        matching engine (personalized if authenticated). Guests see tasks sorted
+        by recency. Supports filtering by skill, location, and budget.
+      operationId: listTasks
+      security:
+        - BearerAuth: []
+        - {} # also accessible unauthenticated
+      parameters:
+        - name: skills
+          in: query
+          description: Comma-separated skill tags to filter by (e.g. `data-entry,ms-excel`)
+          schema:
+            type: string
+          example: "data-entry,ms-excel"
+        - name: district
+          in: query
+          description: Filter by task location district
+          schema:
+            type: string
+          example: "Chattogram"
+        - name: remote
+          in: query
+          description: If true, return remote-friendly tasks only
+          schema:
+            type: boolean
+        - name: minBudget
+          in: query
+          schema:
+            type: integer
+          example: 200
+        - name: maxBudget
+          in: query
+          schema:
+            type: integer
+          example: 2000
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+            minimum: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+            minimum: 1
+            maximum: 100
+      responses:
+        "200":
+          description: Paginated task list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaginatedTasks"
+              example:
+                data:
+                  - id: "tsk_01HXQ4RTBP2M8V5NZJC3Y7KDWE"
+                    status: OPEN
+                    title: "Data Entry: Product Catalogue (200 rows)"
+                    requiredSkills: [ "data-entry", "ms-excel" ]
+                    budget:
+                      amount: 500
+                      currency: "BDT"
+                    deadline: "2026-05-10T23:59:00Z"
+                    businessId: "usr_01HXQ2K9MNTW3R7VBPQ4Z8F6GE"
+                    createdAt: "2026-04-26T08:00:00Z"
+                    updatedAt: "2026-04-26T08:00:00Z"
+                meta:
+                  page: 1
+                  limit: 20
+                  total: 142
+                  totalPages: 8
+
+  # ── 4. POST /tasks/:id/claim ────────────────
+  /tasks/{id}/claim:
+    post:
+      tags: [ Tasks ]
+      summary: Worker claims an open task
+      description: >
+        Atomically claims a task for the authenticated worker using a Redis
+        distributed lock (Redlock). If two workers attempt to claim at the same
+        instant, exactly one succeeds and the other receives a 409. Task status
+        transitions from OPEN → CLAIMED.
+      operationId: claimTask
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Task ID to claim
+          schema:
+            type: string
+          example: "tsk_01HXQ4RTBP2M8V5NZJC3Y7KDWE"
+      responses:
+        "200":
+          description: Task successfully claimed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Task"
+              example:
+                id: "tsk_01HXQ4RTBP2M8V5NZJC3Y7KDWE"
+                status: CLAIMED
+                title: "Data Entry: Product Catalogue (200 rows)"
+                claimedByWorkerId: "usr_01HXQ2K9MNTW3R7VBPQ4Z8F6GD"
+                claimedAt: "2026-04-26T09:15:00Z"
+                deadline: "2026-05-10T23:59:00Z"
+                budget:
+                  amount: 500
+                  currency: "BDT"
+                businessId: "usr_01HXQ2K9MNTW3R7VBPQ4Z8F6GE"
+                createdAt: "2026-04-26T08:00:00Z"
+                updatedAt: "2026-04-26T09:15:00Z"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: Only WORKER accounts can claim tasks
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Task not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Task already claimed by another worker (race condition)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                statusCode: 409
+                error: "Conflict"
+                message: "This task was just claimed by another worker."
+        "422":
+          description: Task is not in OPEN status (e.g. already CLAIMED or CLOSED)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  # ── 5. GET /workers/:id ─────────────────────
+  /workers/{id}:
+    get:
+      tags: [ Workers ]
+      summary: Get a worker's public profile
+      description: >
+        Returns a worker's public profile including their skills, ratings,
+        completed task count, and availability status. Does not expose personal
+        contact details.
+      operationId: getWorkerProfile
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Worker user ID
+          schema:
+            type: string
+          example: "usr_01HXQ2K9MNTW3R7VBPQ4Z8F6GD"
+      responses:
+        "200":
+          description: Worker profile found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Worker"
+              example:
+                id: "usr_01HXQ2K9MNTW3R7VBPQ4Z8F6GD"
+                name: "Rahim Uddin"
+                bio: "Experienced data entry specialist with 3 years using Excel and Google
+                  Sheets."
+                avatarUrl: "https://cdn.ruralgig.com/avatars/rahim.jpg"
+                skills:
+                  - tag: "data-entry"
+                    endorsements: 12
+                  - tag: "ms-excel"
+                    endorsements: 9
+                  - tag: "google-sheets"
+                    endorsements: 4
+                location:
+                  district: "Mymensingh"
+                  division: "Mymensingh"
+                rating:
+                  average: 4.8
+                  count: 23
+                completedTaskCount: 23
+                isAvailable: true
+                joinedAt: "2026-01-15T00:00:00Z"
+        "404":
+          description: Worker not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                statusCode: 404
+                error: "Not Found"
+                message: "Worker with ID usr_01HXQ2K9MNTW3R7VBPQ4Z8F6GD does not exist."
+
+# ─────────────────────────────────────────────
+# COMPONENTS
+# ─────────────────────────────────────────────
+components:
+
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: "JWT access token obtained from /auth/login or /auth/register
+        (businesses only)"
+
+  responses:
+    Unauthorized:
+      description: Missing or invalid JWT token
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          example:
+            statusCode: 401
+            error: "Unauthorized"
+            message: "Bearer token is missing or has expired."
+
+  schemas:
+
+    # ── Enums ──────────────────────────────────
+    UserRole:
+      type: string
+      enum: [ WORKER, BUSINESS, ADMIN ]
+      description: The role of the user account
+
+    TaskStatus:
+      type: string
+      enum: [ DRAFT, OPEN, CLAIMED, SUBMITTED, APPROVED, PAID, CANCELLED ]
+      description: >
+        Full task lifecycle states. DRAFT → OPEN (published by business) OPEN →
+        CLAIMED (worker claims) CLAIMED → SUBMITTED (worker submits work)
+        SUBMITTED → APPROVED (business approves) APPROVED → PAID (payment
+        released) Any state → CANCELLED
+
+    Currency:
+      type: string
+      enum: [ BDT, USD ]
+      default: BDT
+
+    # ── Value Objects ──────────────────────────
+    Money:
+      type: object
+      required: [ amount, currency ]
+      properties:
+        amount:
+          type: integer
+          description: Amount in the smallest unit (e.g. paisa for BDT, cents for USD)
+          minimum: 1
+          example: 500
+        currency:
+          $ref: "#/components/schemas/Currency"
+
+    Location:
+      type: object
+      properties:
+        district:
+          type: string
+          example: "Chattogram"
+        division:
+          type: string
+          example: "Chattogram"
+        remote:
+          type: boolean
+          default: false
+          description: Whether this task can be done remotely
+
+    SkillTag:
+      type: object
+      required: [ tag ]
+      properties:
+        tag:
+          type: string
+          description: Lowercase hyphenated skill identifier
+          pattern: "^[a-z0-9]+(-[a-z0-9]+)*$"
+          example: "ms-excel"
+        endorsements:
+          type: integer
+          minimum: 0
+          default: 0
+          description: Number of businesses who endorsed this skill on the worker
+
+    Rating:
+      type: object
+      properties:
+        average:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 5
+          example: 4.8
+        count:
+          type: integer
+          minimum: 0
+          example: 23
+
+    # ── Core Domain Objects ────────────────────
+    Task:
+      type: object
+      required: [ id, status, title, budget, deadline, businessId, createdAt, updatedAt ]
+      properties:
+        id:
+          type: string
+          example: "tsk_01HXQ4RTBP2M8V5NZJC3Y7KDWE"
+        status:
+          $ref: "#/components/schemas/TaskStatus"
+        title:
+          type: string
+          maxLength: 120
+          example: "Data Entry: Product Catalogue (200 rows)"
+        description:
+          type: string
+          maxLength: 2000
+        requiredSkills:
+          type: array
+          items:
+            type: string
+          maxItems: 5
+          example: [ "data-entry", "ms-excel" ]
+        deliverables:
+          type: array
+          items:
+            type: string
+          description: AI-generated list of concrete deliverables
+        estimatedHours:
+          type: number
+          format: float
+          minimum: 0.5
+          example: 3
+        budget:
+          $ref: "#/components/schemas/Money"
+        deadline:
+          type: string
+          format: date-time
+        location:
+          $ref: "#/components/schemas/Location"
+        businessId:
+          type: string
+          description: ID of the business who posted the task
+        claimedByWorkerId:
+          type: string
+          nullable: true
+          description: ID of the worker who claimed the task (null if OPEN)
+        claimedAt:
+          type: string
+          format: date-time
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    Worker:
+      type: object
+      required: [ id, name, skills, isAvailable, joinedAt ]
+      properties:
+        id:
+          type: string
+          example: "usr_01HXQ2K9MNTW3R7VBPQ4Z8F6GD"
+        name:
+          type: string
+          example: "Rahim Uddin"
+        bio:
+          type: string
+          maxLength: 500
+          nullable: true
+        avatarUrl:
+          type: string
+          format: uri
+          nullable: true
+        skills:
+          type: array
+          items:
+            $ref: "#/components/schemas/SkillTag"
+        location:
+          $ref: "#/components/schemas/Location"
+        rating:
+          $ref: "#/components/schemas/Rating"
+        completedTaskCount:
+          type: integer
+          minimum: 0
+          default: 0
+        isAvailable:
+          type: boolean
+          description: Whether the worker is currently accepting new tasks
+        joinedAt:
+          type: string
+          format: date-time
+
+    # ── Request Bodies ─────────────────────────
+    RegisterRequest:
+      type: object
+      required: [ role, name ]
+      properties:
+        role:
+          $ref: "#/components/schemas/UserRole"
+        name:
+          type: string
+          minLength: 2
+          maxLength: 100
+          example: "Rahim Uddin"
+        phone:
+          type: string
+          description: Required when role is WORKER. E.164 format.
+          pattern: "^\\+8801[3-9]\\d{8}$"
+          example: "+8801711234567"
+        email:
+          type: string
+          format: email
+          description: Required when role is BUSINESS
+          example: "hr@techfirm.com.bd"
+        password:
+          type: string
+          format: password
+          minLength: 8
+          description: Required when role is BUSINESS
+        companyName:
+          type: string
+          description: Required when role is BUSINESS
+          example: "TechFirm BD"
+        location:
+          $ref: "#/components/schemas/Location"
+
+    RegisterResponse:
+      type: object
+      required: [ userId, role, otpSent ]
+      properties:
+        userId:
+          type: string
+        role:
+          $ref: "#/components/schemas/UserRole"
+        otpSent:
+          type: boolean
+        message:
+          type: string
+          nullable: true
+        accessToken:
+          type: string
+          nullable: true
+          description: Issued immediately for BUSINESS. Workers must verify OTP first.
+        refreshToken:
+          type: string
+          nullable: true
+
+    CreateTaskRequest:
+      type: object
+      required: [ title, description, budget, requiredSkills, deadline ]
+      properties:
+        title:
+          type: string
+          maxLength: 120
+          example: "Data entry for product catalogue"
+        description:
+          type: string
+          maxLength: 2000
+          description: Rough input — will be AI-enhanced before saving
+          example: "Need someone to type product names and prices from photos into Excel."
+        budget:
+          $ref: "#/components/schemas/Money"
+        requiredSkills:
+          type: array
+          items:
+            type: string
+          minItems: 1
+          maxItems: 5
+          example: [ "data-entry", "ms-excel" ]
+        deadline:
+          type: string
+          format: date-time
+        location:
+          $ref: "#/components/schemas/Location"
+
+    # ── Pagination ─────────────────────────────
+    PaginationMeta:
+      type: object
+      required: [ page, limit, total, totalPages ]
+      properties:
+        page:
+          type: integer
+        limit:
+          type: integer
+        total:
+          type: integer
+        totalPages:
+          type: integer
+
+    PaginatedTasks:
+      type: object
+      required: [ data, meta ]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Task"
+        meta:
+          $ref: "#/components/schemas/PaginationMeta"
+
+    # ── Error ──────────────────────────────────
+    ErrorResponse:
+      type: object
+      required: [ statusCode, error, message ]
+      properties:
+        statusCode:
+          type: integer
+          example: 422
+        error:
+          type: string
+          example: "Unprocessable Entity"
+        message:
+          type: string
+          example: "phone must be a valid Bangladeshi mobile number"
