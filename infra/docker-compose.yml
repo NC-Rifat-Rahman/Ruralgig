@@ -1,6 +1,6 @@
 services:
   postgres:
-    image: postgres:a6-alphine
+    image: postgres:18.3-alpine
     container_name: postgres
     restart: unless-stopped
     ports:
@@ -19,7 +19,7 @@ services:
       - backend
 
   redis:
-    image: redis:7-alphine
+    image: redis:8.6-alpine
     container_name: ruralgig_redis
     restart: unless-stopped
     ports:
@@ -33,7 +33,7 @@ services:
       - backend
 
   rabbitmq:
-    image: rabbitmq:3-management-alphine
+    image: rabbitmq:4.3-alpine
     container_name: rabbitmq
     restart: unless-stopped
     ports:
