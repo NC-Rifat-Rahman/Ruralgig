@@ -6,15 +6,34 @@ services:
     ports:
       - "127.0.0.1:5432:5432"
     environment:
+      POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: ${POSTGRES_DB:-ruralgig}
+      POSTGRES_DB: ${POSTGRES_DB}
     volumes:
       - pg_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD", "pg_isready", "-U", "postgres"]
+      test:
+        [
+          "CMD",
+          "pg_isready",
+          "-U",
+          "${POSTGRES_USER:-postgres}",
+          "-d",
+          "${POSTGRES_DB:-ruralgig}",
+        ]
       interval: 10s
       timeout: 5s
       retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 512m
+          cpus: "0.5"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
     networks:
       - backend
 
@@ -24,16 +43,29 @@ services:
     restart: unless-stopped
     ports:
       - "127.0.0.1:6379:6379"
+    command: redis-server --requirepass ${REDIS_PASSWORD} --save 60 1 --loglevel warning
+    volumes:
+      - redis_data:/data
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 256m
+          cpus: "0.25"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
     networks:
       - backend
 
   rabbitmq:
-    image: rabbitmq:4.3-alpine
+    image: rabbitmq:4.3-management-alpine
     container_name: rabbitmq
     restart: unless-stopped
     ports:
@@ -42,11 +74,24 @@ services:
     environment:
       RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
       RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASS}
+      RABBITMQ_DEFAULT_VHOST: ${RABBITMQ_VHOST:-/}
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
     healthcheck:
       test: ["CMD", "rabbitmq-diagnostics", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 512m
+          cpus: "0.5"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
     networks:
       - backend
 
@@ -55,17 +100,32 @@ services:
     container_name: pgadmin
     restart: unless-stopped
     ports:
-      - "127.0.0.1:8080:8080"
+      - "127.0.0.1:5050:80"
     environment:
       PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL}
       PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD}
     volumes:
       - pgadmin_data:/var/lib/pgadmin
+    depends_on:
+      postgres:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 256m
+          cpus: "0.25"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
     networks:
       - backend
 
 volumes:
   pg_data:
+  redis_data:
+  rabbitmq_data:
   pgadmin_data:
 
 networks:
