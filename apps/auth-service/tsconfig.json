@@ -1,5 +1,6 @@
 {
   "compilerOptions": {
+    "rootDir": "../../",
     "module": "nodenext",
     "moduleResolution": "nodenext",
     "resolvePackageJsonExports": true,
@@ -22,5 +23,9 @@
     "strictBindCallApply": false,
     "noFallthroughCasesInSwitch": false,
     "strictPropertyInitialization": false
-  }
+  },
+  "include": [
+    "src/**/*",
+    "../../packages/shared-db/src/**/*" // Explicitly include the shared files
+  ]
 }
