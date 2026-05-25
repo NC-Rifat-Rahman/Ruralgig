@@ -6,7 +6,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { UserEntity } from './users/entities/users.entity';
 import path from 'path';
-import { getTypeOrmConfig } from '@ruralgig/shared-db/dist/typeorm.config';
+import { getTypeOrmConfig } from '@ruralgig/shared-db';
 
 @Module({
   imports: [
