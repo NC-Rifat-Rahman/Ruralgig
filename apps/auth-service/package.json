@@ -1,5 +1,5 @@
 {
-  "name": "auth-service",
+  "name": "@ruralgig/auth-service",
   "version": "0.0.1",
   "description": "",
   "author": "",
@@ -7,7 +7,7 @@
   "license": "UNLICENSED",
   "scripts": {
     "build": "nest build",
-    "dev": "ts-node --project tsconfig.json src/main.ts",
+    "dev": "nest build && nest start --watch",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "nest start",
     "start:dev": "nest start --watch",
@@ -21,6 +21,7 @@
     "test:e2e": "jest --config ./test/jest-e2e.json"
   },
   "dependencies": {
+    "@ruralgig/shared-db": "*",
     "@nestjs/cache-manager": "^3.1.2",
     "@nestjs/common": "^11.0.1",
     "@nestjs/config": "^4.0.4",

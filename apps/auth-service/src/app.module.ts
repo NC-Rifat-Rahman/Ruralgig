@@ -5,7 +5,7 @@ import { MailerModule } from './mailer/mailer.module';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { UserEntity } from './users/entities/users.entity';
-import path from 'path';
+import * as path from 'path';
 import { getTypeOrmConfig } from '@ruralgig/shared-db';
 
 @Module({
