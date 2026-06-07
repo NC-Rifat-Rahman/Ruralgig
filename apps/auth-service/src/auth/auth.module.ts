@@ -10,11 +10,12 @@ import { LocalStrategy } from './strategies/local.strategy';
 import { redisStore } from 'cache-manager-redis-store';
 import { RefreshTokenEntity } from './entities/refresh-token.entity';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { UsersModule } from 'src/users/users.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([RefreshTokenEntity]),
-
+    UsersModule,
     JwtModule.registerAsync({
       useFactory: (config: ConfigService) => ({
         secret: config.get('JWT_SECRET'),

@@ -1,11 +1,11 @@
 import { Module } from '@nestjs/common';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
 import { MailerModule } from './mailer/mailer.module';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { UserEntity } from './users/entities/users.entity';
 import { getTypeOrmConfig } from '@ruralgig/shared-db';
+import { UsersModule } from './users/users.module';
+import { AuthModule } from './auth/auth.module';
 
 @Module({
   imports: [
@@ -22,8 +22,10 @@ import { getTypeOrmConfig } from '@ruralgig/shared-db';
         getTypeOrmConfig(config, [UserEntity]),
     }),
     MailerModule,
+    UsersModule,
+    AuthModule
   ],
-  controllers: [AppController],
-  providers: [AppService],
+  controllers: [],
+  providers: [],
 })
 export class AppModule { }
