@@ -6,6 +6,8 @@ import { UserEntity } from './users/entities/users.entity';
 import { getTypeOrmConfig } from '@ruralgig/shared-db';
 import { UsersModule } from './users/users.module';
 import { AuthModule } from './auth/auth.module';
+import { OtpModule } from './otp/otp.module';
+import { OtpEntity } from './otp/entities/otp.entity';
 
 @Module({
   imports: [
@@ -19,11 +21,15 @@ import { AuthModule } from './auth/auth.module';
     TypeOrmModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (config: ConfigService) =>
-        getTypeOrmConfig(config, [UserEntity]),
+        getTypeOrmConfig(config, [
+          UserEntity,
+          OtpEntity
+        ]),
     }),
     MailerModule,
     UsersModule,
-    AuthModule
+    AuthModule,
+    OtpModule
   ],
   controllers: [],
   providers: [],
