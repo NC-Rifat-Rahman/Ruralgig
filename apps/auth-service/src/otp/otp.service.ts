@@ -1,30 +1,46 @@
-import { Injectable } from "@nestjs/common";
-import bcrypt from "bcryptjs/umd/types";
-import * as crypto from "crypto";
-import { OtpRepository } from "./otp.repository";
+import { Injectable, BadRequestException } from '@nestjs/common';
+import * as bcrypt from 'bcryptjs';
+import * as crypto from 'crypto';
+import { OtpRepository } from './otp.repository';
+import { OtpType } from './type/otp-type';
 
 @Injectable()
 export class OtpService {
-    constructor(
-        private readonly otpRepository: OtpRepository,
-    ) { }
+    constructor(private readonly otpRepository: OtpRepository) { }
 
-    async generateOtp(userId: number, type: string): Promise<string> {
-        // Generate a random 6-digit OTP
+    async generateOtp(userId: number, type: OtpType): Promise<string> {
         const otp = crypto.randomInt(100000, 999999).toString();
         const hashedOtp = await bcrypt.hash(otp, 10);
-        const now = new Date();
-        const expiresAt = new Date(now.getTime() + 5 * 60 * 1000); // OTP expires in 5 minutes
 
-        const otpEntity = this.otpRepository.create({
+        const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
+
+        await this.otpRepository.create({
             userId,
             token: hashedOtp,
-            type, // Cast to OtpType if necessary
+            type,
             expiresAt,
         });
 
-        // Save the OTP to the database 
         return otp;
     }
 
+    // async verifyOtp(userId: number, plainOtp: string, type: OtpType): Promise<boolean> {
+    //     const otpRecord = await this.otpRepository.findLatestByUserAndType(userId, type);
+
+    //     if (!otpRecord) {
+    //         return false;
+    //     }
+
+    //     if (otpRecord.expiresAt < new Date()) {
+    //         return false;
+    //     }
+
+    //     const isMatch = await bcrypt.compare(plainOtp, otpRecord.token);
+    //     if (isMatch) {
+    //         // Optional: delete used OTP
+    //         await this.otpRepository.delete(otpRecord.id);
+    //     }
+
+    //     return isMatch;
+    // }
 }

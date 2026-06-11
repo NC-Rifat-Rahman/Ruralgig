@@ -1,22 +1,24 @@
-import { UserEntity } from "src/users/entities/users.entity";
-import { Column, CreateDateColumn, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from "typeorm";
-import { OtpType } from "../type/otp-type";
+import { UserEntity } from 'src/users/entities/users.entity';
+import { Column, CreateDateColumn, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
+import { OtpType } from '../type/otp-type';
 
-
-@Entity()
+@Entity('otps')
 export class OtpEntity {
     @PrimaryGeneratedColumn()
     id: number;
 
-    @ManyToOne(() => UserEntity, { nullable: false })
-    @JoinColumn()
+    @ManyToOne(() => UserEntity, { nullable: false, onDelete: 'CASCADE' })
+    @JoinColumn({ name: 'userId' })
     user: UserEntity;
+
+    @Column()
+    userId: number;
 
     @Column()
     token: string;
 
-    @Column({ type: "enum", enum: OtpType })
-    type: OtpType
+    @Column({ type: 'enum', enum: OtpType })
+    type: OtpType;
 
     @Column()
     expiresAt: Date;
