@@ -1,25 +1,41 @@
-import { Injectable } from "@nestjs/common";
-import { Repository } from "typeorm";
-import { User } from "./users.service";
-import { CreateUserDto } from "./dto/create-user.dto";
-import { InjectRepository } from "@nestjs/typeorm";
-import { UserEntity } from "./entities/users.entity";
+import { Injectable } from '@nestjs/common';
+import { Repository } from 'typeorm';
+import { InjectRepository } from '@nestjs/typeorm';
+import { UserEntity } from './entities/users.entity';
+import { CreateUserDto } from './dto/create-user.dto';
 
 @Injectable()
 export class UsersRepository {
     constructor(
         @InjectRepository(UserEntity)
-        private readonly users: Repository<UserEntity>) { }
+        private readonly users: Repository<UserEntity>,
+    ) { }
 
-    async findOne(dto: CreateUserDto): Promise<User | undefined> {
-        return "";
-        // return this.users.find(user => user.username === username);
+    async findOneByEmailOrUsername(email: string, username: string) {
+        return this.users.findOne({
+            where: [{ email }, { username }],
+        });
     }
 
-    async create(dto: CreateUserDto, hashedPassword: string): Promise<User> {
-        return "";
-        // const user = this.users.create({ ...dto, password: hashedPassword });
-        // save
-        // return this.users.save(user);
+    async findOneByEmail(email: string) {
+        return this.users.findOne({ where: { email } });
     }
+
+    async findOneByUsername(username: string) {
+        return this.users.findOne({ where: { username } });
+    }
+
+    async create(dto: CreateUserDto, hashedPassword: string): Promise<UserEntity> {
+        const user = this.users.create({
+            ...dto,
+            password: hashedPassword,
+            role: dto.role || 'WORKER',
+            isActive: dto.isActive ?? true,
+        });
+        return this.users.save(user);
+    }
+
+    // async markAsVerified(userId: number) {
+    //     return this.users.update(userId, { isVerified: true });
+    // }
 }

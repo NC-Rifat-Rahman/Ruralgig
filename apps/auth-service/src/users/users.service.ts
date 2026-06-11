@@ -1,55 +1,77 @@
-
 import { BadRequestException, Injectable } from '@nestjs/common';
 import * as bcrypt from 'bcryptjs';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UsersRepository } from './users.repository';
 import { OtpType } from 'src/otp/type/otp-type';
 import { OtpService } from 'src/otp/otp.service';
-
-export type User = any;
+import { VerifyOtpDto } from 'src/otp/dto/verify-otp.dto';
+import { MailerService } from 'src/mailer/mailer.service';
 
 @Injectable()
 export class UsersService {
-  constructor(
-    private readonly usersRepository: UsersRepository,
-    private readonly otpService: OtpService
-  ) { }
-  private readonly users = [
-    {
-      userId: 1,
-      username: 'john',
-      password: 'changeme',
-    },
-    {
-      userId: 2,
-      username: 'maria',
-      password: 'guess',
-    },
-  ];
+    constructor(
+        private readonly usersRepository: UsersRepository,
+        private readonly otpService: OtpService,
+        private readonly mailerService: MailerService,
+    ) { }
 
-  async register(dto: CreateUserDto): Promise<{ user: User, otp: string }> {
-    const { email, password } = dto;
+    async register(dto: CreateUserDto) {
+        const existingUser = await this.usersRepository.findOneByEmailOrUsername(dto.email, dto.username);
+        if (existingUser) {
+            throw new BadRequestException('User with this email or username already exists');
+        }
 
-    const existingUser = await this.usersRepository.findOne(dto);
+        const salt = await bcrypt.genSalt();
+        const hashedPassword = await bcrypt.hash(dto.password, salt);
 
-    if (existingUser) {
-      throw new BadRequestException('User already exists');
+        const newUser = await this.usersRepository.create(dto, hashedPassword);
+
+        // Generate OTP
+        const plainOtp = await this.otpService.generateOtp(newUser.id, OtpType.OTP);
+
+        // TODO: Send email (replace with your email service)
+        console.log(`[EMAIL] OTP for ${dto.email}: ${plainOtp}`);
+
+        const emailDto = {
+            recipients: [dto.email],
+            subject: 'OTP for Email Verification',
+            html: `<p>Your OTP is: <strong>${plainOtp}</strong></p>`,
+        }
+
+        //send otp via email
+        return await this.mailerService.sendEmail(emailDto);
+
+        // return {
+        //     message: 'Registration successful. Please verify your email.',
+        //     userId: newUser.id,
+        //     email: newUser.email,
+        //     otp: plainOtp, // For testing purposes only. Remove in production.
+        // };
     }
 
-    const salt = await bcrypt.genSalt();
-    const hashedPassword = await bcrypt.hash(password, salt);
-    const newUser = await this.usersRepository.create(dto, hashedPassword);
-    const generatedOtp = await this.otpService.generateOtp(newUser, OtpType.OTP);
-    const emailDto = {
-      recipient: email,
-      subject: 'Your OTP Code',
-      text: `Your OTP verification code is: <strong>${generatedOtp}</strong>`,
-    };
+    // async verifyOtp(dto: VerifyOtpDto) {
+    //     const user = await this.usersRepository.findOneByEmail(dto.email);
+    //     if (!user) {
+    //         throw new BadRequestException('User not found');
+    //     }
 
-    return { user: newUser, otp: generatedOtp };
-  }
+    //     const isValid = await this.otpService.verifyOtp(user.id, dto.otp, OtpType.OTP);
 
-  async findOne(username: string): Promise<User | undefined> {
-    return this.users.find(user => user.username === username);
-  }
+    //     if (!isValid) {
+    //         throw new BadRequestException('Invalid or expired OTP');
+    //     }
+
+    //     // Mark as verified
+    //     await this.usersRepository.markAsVerified(user.id);
+
+    //     return {
+    //         message: 'Account verified successfully',
+    //         userId: user.id,
+    //     };
+    // }
+
+    // Helper for future login
+    async findOne(username: string) {
+        return this.usersRepository.findOneByUsername(username);
+    }
 }
