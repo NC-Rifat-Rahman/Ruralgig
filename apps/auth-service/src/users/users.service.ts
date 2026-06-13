@@ -6,6 +6,7 @@ import { OtpType } from 'src/otp/type/otp-type';
 import { OtpService } from 'src/otp/otp.service';
 import { VerifyOtpDto } from 'src/otp/dto/verify-otp.dto';
 import { MailerService } from 'src/mailer/mailer.service';
+import { OtpRecipient } from 'src/otp/interfaces/otp-recipient.interface';
 
 @Injectable()
 export class UsersService {
@@ -26,20 +27,15 @@ export class UsersService {
 
         const newUser = await this.usersRepository.create(dto, hashedPassword);
 
+        const recepient = {
+            userId: newUser.id,
+            email: newUser.email,
+        };
+
+        await this.emailVerification(recepient, OtpType.OTP);
+
         // Generate OTP
-        const plainOtp = await this.otpService.generateOtp(newUser.id, OtpType.OTP);
 
-        // TODO: Send email (replace with your email service)
-        console.log(`[EMAIL] OTP for ${dto.email}: ${plainOtp}`);
-
-        const emailDto = {
-            recipients: [dto.email],
-            subject: 'OTP for Email Verification',
-            html: `<p>Your OTP is: <strong>${plainOtp}</strong></p>`,
-        }
-
-        //send otp via email
-        return await this.mailerService.sendEmail(emailDto);
 
         // return {
         //     message: 'Registration successful. Please verify your email.',
@@ -47,6 +43,21 @@ export class UsersService {
         //     email: newUser.email,
         //     otp: plainOtp, // For testing purposes only. Remove in production.
         // };
+    }
+
+    async emailVerification(recepient: OtpRecipient, otpType: OtpType) {
+        const plainOtp = await this.otpService.generateOtp(recepient, otpType);
+
+        console.log(`[EMAIL] OTP for ${recepient.email}: ${plainOtp}`);
+
+        const emailDto = {
+            recipients: [recepient.email],
+            subject: 'OTP for Email Verification',
+            html: `<p>Your OTP is: <strong>${plainOtp}</strong></p>`,
+        }
+
+        //send otp via email
+        return await this.mailerService.sendEmail(emailDto);
     }
 
     // async verifyOtp(dto: VerifyOtpDto) {

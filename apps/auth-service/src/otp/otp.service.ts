@@ -3,19 +3,21 @@ import * as bcrypt from 'bcryptjs';
 import * as crypto from 'crypto';
 import { OtpRepository } from './otp.repository';
 import { OtpType } from './type/otp-type';
+import { CreateUserDto } from 'src/users/dto/create-user.dto';
+import { OtpRecipient } from './interfaces/otp-recipient.interface';
 
 @Injectable()
 export class OtpService {
     constructor(private readonly otpRepository: OtpRepository) { }
 
-    async generateOtp(userId: number, type: OtpType): Promise<string> {
+    async generateOtp(recipient: OtpRecipient, type: OtpType): Promise<string> {
         const otp = crypto.randomInt(100000, 999999).toString();
         const hashedOtp = await bcrypt.hash(otp, 10);
 
         const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
 
         await this.otpRepository.create({
-            userId,
+            userId: recipient.userId,
             token: hashedOtp,
             type,
             expiresAt,
