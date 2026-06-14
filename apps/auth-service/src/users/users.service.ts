@@ -82,7 +82,7 @@ export class UsersService {
     // }
 
     // Helper for future login
-    async findOne(username: string) {
-        return this.usersRepository.findOneByUsername(username);
+    async findOne(email: string) {
+        return this.usersRepository.findOneByEmail(email);
     }
 }

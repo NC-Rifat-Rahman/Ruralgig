@@ -11,6 +11,7 @@ import { redisStore } from 'cache-manager-redis-store';
 import { RefreshTokenEntity } from './entities/refresh-token.entity';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { UsersModule } from 'src/users/users.module';
+import { AuthController } from './auth.controller';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { UsersModule } from 'src/users/users.module';
     PassportModule.register({ defaultStrategy: 'jwt' }),
     CacheModule.register({ store: redisStore, ttl: 60 * 60 * 24 * 7 }),
   ],
+  controllers: [AuthController],
   providers: [AuthService, JwtStrategy, LocalStrategy, /*OtpService*/],
   exports: [AuthService, JwtModule],
 })
