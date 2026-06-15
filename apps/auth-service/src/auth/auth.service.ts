@@ -58,10 +58,7 @@ export class AuthService {
             requiresOtp: true
           };
         }
-        throw new UnauthorizedException('Account not verified');
-      }
-      else {
-        await this.verifyOtp(user.id, otp!, OtpType.OTP);
+        await this.verifyOtp(user.id, otp, OtpType.OTP);
       }
 
       const payload = { id: user.id, email: user.email };
@@ -95,5 +92,6 @@ export class AuthService {
     user.isVerified = true;
 
     //save user
+    await this.usersService.updateUser(userId, { isVerified: true });
   }
 }

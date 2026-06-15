@@ -16,17 +16,27 @@ export class OtpService {
 
         const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
 
-        await this.otpRepository.create({
-            userId: recipient.userId,
-            token: hashedOtp,
-            type,
-            expiresAt,
-        });
+        const existingOtp = await this.otpRepository.findOne(recipient.userId, type);
 
+        if (existingOtp) {
+            existingOtp.token = hashedOtp;
+            existingOtp.expiresAt = expiresAt;
+            await this.otpRepository.create(existingOtp);
+        }
+        else {
+            await this.otpRepository.create({
+                userId: recipient.userId,
+                token: hashedOtp,
+                type,
+                expiresAt,
+            });
+        }
         return otp;
     }
 
     async validateOtp(userId: number, plainOtp: string, type: OtpType): Promise<boolean> {
+        console.log(userId);
+        
         const validToken = await this.otpRepository.findOne(userId, type);
 
         if (!validToken) {

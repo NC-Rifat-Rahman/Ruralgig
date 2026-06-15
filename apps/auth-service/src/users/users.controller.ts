@@ -1,7 +1,8 @@
-import { Body, Controller, Post, HttpCode, HttpStatus } from '@nestjs/common';
+import { Body, Controller, Post, HttpCode, HttpStatus, BadRequestException } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
-import { VerifyOtpDto } from 'src/otp/dto/verify-otp.dto';
+import { RequestOtpDto } from './dto/request-otp.dto';
+import { OtpType } from 'src/otp/type/otp-type';
 
 @Controller('users')
 export class UsersController {
@@ -10,6 +11,19 @@ export class UsersController {
     @Post('register')
     async register(@Body() dto: CreateUserDto) {
         return this.usersService.register(dto);
+    }
+
+    @Post('request-otp')
+    async requestOtp(@Body() dto: RequestOtpDto) {
+        const user = await this.usersService.findOneByEmail(dto.email);
+
+        if (!user) {
+            throw new BadRequestException('User with this email does not exist');
+        }
+
+        await this.usersService.emailVerification({ userId: user.id, email: user.email }, OtpType.OTP);
+
+        return { message: 'OTP sent to email' };
     }
 
     // @Post('verify-otp')
