@@ -25,6 +25,10 @@ export class UsersRepository {
         return this.users.findOne({ where: { username } });
     }
 
+    async findOneByUserId(userId: number) {
+        return this.users.findOne({ where: { id: userId } });
+    }
+
     async create(dto: CreateUserDto, hashedPassword: string): Promise<UserEntity> {
         const user = this.users.create({
             ...dto,

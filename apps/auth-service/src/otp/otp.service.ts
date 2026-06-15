@@ -26,6 +26,20 @@ export class OtpService {
         return otp;
     }
 
+    async validateOtp(userId: number, plainOtp: string, type: OtpType): Promise<boolean> {
+        const validToken = await this.otpRepository.findOne(userId, type);
+
+        if (!validToken) {
+            throw new BadRequestException('No valid OTP found or OTP has expired');
+        }
+
+        const isMatch = await bcrypt.compare(plainOtp, validToken.token);
+
+        if (!isMatch) {
+            throw new BadRequestException('Invalid OTP');
+        }
+        return true;
+    }
     // async verifyOtp(userId: number, plainOtp: string, type: OtpType): Promise<boolean> {
     //     const otpRecord = await this.otpRepository.findLatestByUserAndType(userId, type);
 

@@ -12,11 +12,13 @@ import { RefreshTokenEntity } from './entities/refresh-token.entity';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { UsersModule } from 'src/users/users.module';
 import { AuthController } from './auth.controller';
+import { OtpModule } from 'src/otp/otp.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([RefreshTokenEntity]),
     UsersModule,
+    OtpModule,
     JwtModule.registerAsync({
       useFactory: (config: ConfigService) => ({
         secret: config.get('JWT_SECRET'),

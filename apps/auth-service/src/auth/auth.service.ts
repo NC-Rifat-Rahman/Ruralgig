@@ -4,19 +4,22 @@ import { UsersService } from '../users/users.service';
 import { JwtService } from '@nestjs/jwt';
 import { LoginDto } from './dto/login.dto';
 import * as bcrypt from 'bcryptjs';
+import { OtpService } from 'src/otp/otp.service';
+import { OtpType } from 'src/otp/type/otp-type';
 
 @Injectable()
 export class AuthService {
   constructor(
     private usersService: UsersService,
-    private jwtService: JwtService
+    private jwtService: JwtService,
+    private otpService: OtpService
   ) { }
 
   async signIn(
-    username: string,
+    email: string,
     pass: string,
   ): Promise<{ access_token: string }> {
-    const user = await this.usersService.findOne(username);
+    const user = await this.usersService.findOneByEmail(email);
     if (user?.password !== pass) {
       throw new UnauthorizedException();
     }
@@ -34,18 +37,31 @@ export class AuthService {
 
   async login(dto: LoginDto) {
     try {
-      const user = await this.usersService.findOne(dto.email);
+      const { email, password, otp } = dto;
 
-      console.log("user", user);
+      const user = await this.usersService.findOneByEmail(email);
 
       if (!user) {
         throw new UnauthorizedException('Invalid credentials');
       }
 
-      const isPasswordValid = await bcrypt.compare(dto.password, user.password);
+      const isPasswordValid = await bcrypt.compare(password, user.password);
 
       if (!isPasswordValid) {
         throw new UnauthorizedException('Invalid credentials');
+      }
+
+      if (!user.isVerified) {
+        if (!otp) {
+          return {
+            message: 'Account not verified. Please provide OTP for verification.',
+            requiresOtp: true
+          };
+        }
+        throw new UnauthorizedException('Account not verified');
+      }
+      else {
+        await this.verifyOtp(user.id, otp!, OtpType.OTP);
       }
 
       const payload = { id: user.id, email: user.email };
@@ -58,10 +74,26 @@ export class AuthService {
       };
     }
     catch (error) {
-      if (error instanceof UnauthorizedException) {
+      if (error instanceof UnauthorizedException ||
+        error instanceof BadRequestException
+      ) {
         throw error;
       }
       throw new BadRequestException(error);
     }
+  }
+
+  async verifyOtp(userId: number, otp: string, otpType: OtpType) {
+    await this.otpService.validateOtp(userId, otp, otpType);
+
+    const user = await this.usersService.findOneByUserId(userId);
+
+    if (!user) {
+      throw new BadRequestException('User not found');
+    }
+
+    user.isVerified = true;
+
+    //save user
   }
 }
