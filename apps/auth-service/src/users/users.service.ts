@@ -4,9 +4,9 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { UsersRepository } from './users.repository';
 import { OtpType } from 'src/otp/type/otp-type';
 import { OtpService } from 'src/otp/otp.service';
-import { VerifyOtpDto } from 'src/otp/dto/verify-otp.dto';
 import { MailerService } from 'src/mailer/mailer.service';
 import { OtpRecipient } from 'src/otp/interfaces/otp-recipient.interface';
+import { UpdateUserDto } from './dto/update-user.dto';
 
 @Injectable()
 export class UsersService {
@@ -80,6 +80,10 @@ export class UsersService {
     //         userId: user.id,
     //     };
     // }
+
+    async updateUser(userId: number, updateData: Partial<UpdateUserDto>) {
+        return this.usersRepository.update(userId, updateData);
+    }
 
     // Helper for future login
     async findOneByEmail(email: string) {

@@ -3,6 +3,7 @@ import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { UserEntity } from './entities/users.entity';
 import { CreateUserDto } from './dto/create-user.dto';
+import { UpdateUserDto } from './dto/update-user.dto';
 
 @Injectable()
 export class UsersRepository {
@@ -37,6 +38,12 @@ export class UsersRepository {
             isActive: dto.isActive ?? true,
         });
         return this.users.save(user);
+    }
+
+    async update(userId: number, updateData: Partial<UpdateUserDto>): Promise<UserEntity | null> {
+        await this.users.update(userId, updateData);
+
+        return this.findOneByUserId(userId);
     }
 
     // async markAsVerified(userId: number) {
