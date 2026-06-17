@@ -10,11 +10,15 @@ import { LocalStrategy } from './strategies/local.strategy';
 import { redisStore } from 'cache-manager-redis-store';
 import { RefreshTokenEntity } from './entities/refresh-token.entity';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { UsersModule } from 'src/users/users.module';
+import { AuthController } from './auth.controller';
+import { OtpModule } from 'src/otp/otp.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([RefreshTokenEntity]),
-
+    UsersModule,
+    OtpModule,
     JwtModule.registerAsync({
       useFactory: (config: ConfigService) => ({
         secret: config.get('JWT_SECRET'),
@@ -25,6 +29,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
     PassportModule.register({ defaultStrategy: 'jwt' }),
     CacheModule.register({ store: redisStore, ttl: 60 * 60 * 24 * 7 }),
   ],
+  controllers: [AuthController],
   providers: [AuthService, JwtStrategy, LocalStrategy, /*OtpService*/],
   exports: [AuthService, JwtModule],
 })
