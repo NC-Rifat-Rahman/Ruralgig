@@ -1,34 +1,34 @@
 import { IsBoolean, IsDate, IsEmail, IsEnum, IsOptional, IsString, MinLength } from 'class-validator';
 
-export class CreateUserDto {
+export class UpdateUserDto {
     @IsEmail()
-    email: string;
+    email?: string;
 
     @IsString()
     @MinLength(3)
-    username: string;
+    username?: string;
 
     @IsString()
     @MinLength(6)
-    password: string;
+    password?: string;
 
     @IsEnum(['WORKER', 'BUSINESS', 'ADMIN'])
     @IsOptional()
-    role: 'WORKER' | 'BUSINESS' | 'ADMIN';
+    role?: 'WORKER' | 'BUSINESS' | 'ADMIN';
 
     @IsBoolean()
     @IsOptional()
-    isActive: boolean;
+    isActive?: boolean;
 
     @IsString()
-    phone: string;
+    phone?: string;
 
     @IsBoolean()
-    isVerified: boolean;
+    isVerified?: boolean;
 
     @IsDate()
-    createdAt: Date;
+    createdAt?: Date;
 
     @IsDate()
-    updatedAt: Date;
+    updatedAt?: Date;
 }
