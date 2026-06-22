@@ -7,6 +7,7 @@ import { OtpService } from 'src/otp/otp.service';
 import { MailerService } from 'src/mailer/mailer.service';
 import { OtpRecipient } from 'src/otp/interfaces/otp-recipient.interface';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class UsersService {
@@ -14,6 +15,7 @@ export class UsersService {
         private readonly usersRepository: UsersRepository,
         private readonly otpService: OtpService,
         private readonly mailerService: MailerService,
+        private readonly configService: ConfigService,
     ) { }
 
     async register(dto: CreateUserDto) {
@@ -47,17 +49,28 @@ export class UsersService {
 
     async emailVerification(recepient: OtpRecipient, otpType: OtpType) {
         const plainOtp = await this.otpService.generateOtp(recepient, otpType);
-
         console.log(`[EMAIL] OTP for ${recepient.email}: ${plainOtp}`);
 
-        const emailDto = {
-            recipients: [recepient.email],
-            subject: 'OTP for Email Verification',
-            html: `<p>Your OTP is: <strong>${plainOtp}</strong></p>`,
+        if (otpType === OtpType.OTP) {
+            const emailDto = {
+                recipients: [recepient.email],
+                subject: 'OTP for Email Verification',
+                html: `<p>Your OTP is: <strong>${plainOtp}</strong></p>`,
+            }
+            //send otp via email
+            return await this.mailerService.sendEmail(emailDto);
         }
+        else if (otpType === OtpType.RESET_LINK) {
+            const resetLink = `${this.configService.get<string>('RESET_PASSWORD_URL')}?token=${plainOtp}`;
 
-        //send otp via email
-        return await this.mailerService.sendEmail(emailDto);
+            const emailDto = {
+                recipients: [recepient.email],
+                subject: 'Password Reset Link',
+                html: `<p>Your reset link is: <strong>${resetLink}</strong></p>`,
+            }
+            //send otp via email
+            return await this.mailerService.sendEmail(emailDto);
+        }
     }
 
     // async verifyOtp(dto: VerifyOtpDto) {

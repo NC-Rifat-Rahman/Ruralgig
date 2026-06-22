@@ -26,6 +26,19 @@ export class UsersController {
         return { message: 'OTP sent to email' };
     }
 
+    @Post('forgot-password')
+    async forgotPassword(@Body() dto: RequestOtpDto) {
+        const user = await this.usersService.findOneByEmail(dto.email);
+
+        if (!user) {
+            throw new BadRequestException('User with this email does not exist');
+        }
+
+        await this.usersService.emailVerification({ userId: user.id, email: user.email }, OtpType.RESET_LINK);
+
+        return { message: 'Reset link sent to email' };
+    }
+
     // @Post('verify-otp')
     // @HttpCode(HttpStatus.OK)
     // async verifyOtp(@Body() dto: VerifyOtpDto) {

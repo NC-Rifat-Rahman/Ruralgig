@@ -3,40 +3,55 @@ import * as bcrypt from 'bcryptjs';
 import * as crypto from 'crypto';
 import { OtpRepository } from './otp.repository';
 import { OtpType } from './type/otp-type';
-import { CreateUserDto } from 'src/users/dto/create-user.dto';
 import { OtpRecipient } from './interfaces/otp-recipient.interface';
+import { JwtService } from '@nestjs/jwt';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class OtpService {
-    constructor(private readonly otpRepository: OtpRepository) { }
+    constructor(
+        private readonly otpRepository: OtpRepository,
+        private readonly jwtService: JwtService,
+        private readonly configService: ConfigService,
+    ) { }
 
-    async generateOtp(recipient: OtpRecipient, type: OtpType): Promise<string> {
-        const otp = crypto.randomInt(100000, 999999).toString();
-        const hashedOtp = await bcrypt.hash(otp, 10);
+    async generateOtp(recipient: OtpRecipient, type: OtpType): Promise<any> {
+        if (type === OtpType.OTP) {
+            const otp = crypto.randomInt(100000, 999999).toString();
+            const hashedOtp = await bcrypt.hash(otp, 10);
 
-        const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
+            const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
 
-        const existingOtp = await this.otpRepository.findOne(recipient.userId, type);
+            const existingOtp = await this.otpRepository.findOne(recipient.userId, type);
 
-        if (existingOtp) {
-            existingOtp.token = hashedOtp;
-            existingOtp.expiresAt = expiresAt;
-            await this.otpRepository.create(existingOtp);
+            if (existingOtp) {
+                existingOtp.token = hashedOtp;
+                existingOtp.expiresAt = expiresAt;
+                await this.otpRepository.create(existingOtp);
+            }
+            else {
+                await this.otpRepository.create({
+                    userId: recipient.userId,
+                    token: hashedOtp,
+                    type,
+                    expiresAt,
+                });
+            }
+            return otp;
         }
-        else {
-            await this.otpRepository.create({
-                userId: recipient.userId,
-                token: hashedOtp,
-                type,
-                expiresAt,
-            });
+        else if (type === OtpType.RESET_LINK) {
+            const resetOtp = this.jwtService.sign({
+                id: recipient.userId,
+                email: recipient.email,
+            }, {
+                secret: this.configService.get<string>('JWT_RESET_PASSWORD_SECRET'),
+                expiresIn: '15m',
+            })
+            return resetOtp;
         }
-        return otp;
     }
 
     async validateOtp(userId: number, plainOtp: string, type: OtpType): Promise<boolean> {
-        console.log(userId);
-        
         const validToken = await this.otpRepository.findOne(userId, type);
 
         if (!validToken) {
