@@ -24,6 +24,12 @@ export class AuthController {
     return this.authService.login(dto);
   }
 
+  @Post('reset-password')
+  async resetPassword(@Body() dto: { token: string, newPassword: string }) {
+    console.log("controller dto", dto);
+    return this.authService.resetPassword(dto.token, dto.newPassword);
+  }
+
   @UseGuards(AuthGuard)
   @Get('profile')
   getProfile(@Request() req) {

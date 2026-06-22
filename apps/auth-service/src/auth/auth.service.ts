@@ -94,4 +94,24 @@ export class AuthService {
     //save user
     await this.usersService.updateUser(userId, { isVerified: true });
   }
+
+  async resetPassword(token: string, newPassword: string): Promise<string> {
+    const userId = await this.otpService.validateResetPassword(token);
+    console.log("userId", userId);
+
+    const user = await this.usersService.findOneByUserId(userId);
+
+    console.log("user", user);
+
+    if (!user) {
+      throw new BadRequestException('User not found');
+    }
+
+    user.password = await bcrypt.hash(newPassword, 10);
+
+    await this.usersService.updateUser(userId, { password: user.password });
+
+    return 'Password reset successful';
+
+  }
 }

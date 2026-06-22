@@ -65,6 +65,21 @@ export class OtpService {
         }
         return true;
     }
+
+    async validateResetPassword(token: string): Promise<any> {
+        try {
+            const decoded = this.jwtService.verify(token, {
+                secret: this.configService.get<string>('JWT_RESET_PASSWORD_SECRET'),
+            });
+            return decoded.id;
+        }
+        catch (error: any) {
+            if (error?.name === 'TokenExpiredError') {
+                throw new BadRequestException('Reset token has expired');
+            }
+            throw new BadRequestException('Invalid or expired reset token');
+        }
+    }
     // async verifyOtp(userId: number, plainOtp: string, type: OtpType): Promise<boolean> {
     //     const otpRecord = await this.otpRepository.findLatestByUserAndType(userId, type);
 
