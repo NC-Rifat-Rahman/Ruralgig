@@ -2,7 +2,7 @@ import { Body, Controller, Post, HttpCode, HttpStatus, BadRequestException } fro
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { RequestOtpDto } from './dto/request-otp.dto';
-import { OtpType } from 'src/otp/type/otp-type';
+import { OtpType } from 'src/otp/enums/otp-enum';
 
 @Controller('users')
 export class UsersController {

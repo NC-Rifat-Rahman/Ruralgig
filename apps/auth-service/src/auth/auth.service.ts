@@ -5,7 +5,7 @@ import { JwtService } from '@nestjs/jwt';
 import { LoginDto } from './dto/login.dto';
 import * as bcrypt from 'bcryptjs';
 import { OtpService } from 'src/otp/otp.service';
-import { OtpType } from 'src/otp/type/otp-type';
+import { OtpType } from 'src/otp/enums/otp-enum';
 
 @Injectable()
 export class AuthService {

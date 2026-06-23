@@ -2,7 +2,7 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import * as bcrypt from 'bcryptjs';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UsersRepository } from './users.repository';
-import { OtpType } from 'src/otp/type/otp-type';
+import { OtpType } from 'src/otp/enums/otp-enum';
 import { OtpService } from 'src/otp/otp.service';
 import { MailerService } from 'src/mailer/mailer.service';
 import { OtpRecipient } from 'src/otp/interfaces/otp-recipient.interface';

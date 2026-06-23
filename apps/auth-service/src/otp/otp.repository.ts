@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { MoreThan, Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { OtpEntity } from './entities/otp.entity';
-import { OtpType } from './type/otp-type';
+import { OtpType } from './enums/otp-enum';
 
 @Injectable()
 export class OtpRepository {

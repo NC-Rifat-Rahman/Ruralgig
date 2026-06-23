@@ -1,6 +1,6 @@
 import { UserEntity } from 'src/users/entities/users.entity';
 import { Column, CreateDateColumn, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
-import { OtpType } from '../type/otp-type';
+import { OtpType } from '../enums/otp-enum';
 
 @Entity('otps')
 export class OtpEntity {
