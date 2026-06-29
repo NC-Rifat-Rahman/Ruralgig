@@ -1,23 +1,33 @@
-// auth-service/src/auth/strategies/auth-strategy.interface.ts
-// return AuthenticatedUser instead of any
+import { UserEntity } from 'src/users/entities/users.entity';
+
+export const AUTH_STRATEGIES = 'AUTH_STRATEGIES';
+
+/**
+ * The credential bag passed to every strategy. Fields are optional because
+ * different strategies consume different subsets (email+password vs phone+otp).
+ * Class-level validation happens in the DTO before this point.
+ */
+export interface LoginCredentials {
+  email?: string;
+  phone?: string;
+  password?: string;
+  otp?: string;
+}
+
+/**
+ * Strategy Pattern — auth method contract.
+ *
+ * supports()  → determines at runtime whether this strategy handles the
+ *               given credentials. AuthService picks the first match.
+ *
+ * validate()  → performs the actual verification, returns a UserEntity on
+ *               success or throws UnauthorizedException on failure.
+ *
+ * Adding a new auth method (e.g. Google OAuth, TOTP) = one new class that
+ * implements this interface + one line in auth.module.ts. AuthService never
+ * changes. That is OCP in practice.
+ */
 export interface IAuthStrategy {
-  validate(credential: string, secret: string): Promise<any>;
-}
-
-// Phone + OTP strategy for workers
-export class PhoneAuthStrategy implements IAuthStrategy {
-  async validate(phone: string, otp: string): Promise<any> {
-    // 1. Look up user by phone
-    // 2. Verify OTP from Redis
-    // 3. Return user or throw UnauthorizedException
-  }
-}
-
-// Email + Password strategy for businesses
-export class EmailAuthStrategy implements IAuthStrategy {
-  async validate(email: string, password: string): Promise<any> {
-    // 1. Look up user by email
-    // 2. bcrypt.compare(password, user.passwordHash)
-    // 3. Return user or throw UnauthorizedException
-  }
+  supports(credentials: LoginCredentials): boolean;
+  validate(credentials: LoginCredentials): Promise<UserEntity>;
 }

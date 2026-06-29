@@ -1,84 +1,100 @@
 
-import { BadRequestException, Injectable, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, Inject, Injectable, UnauthorizedException } from '@nestjs/common';
 import { UsersService } from '../users/users.service';
 import { JwtService } from '@nestjs/jwt';
 import { LoginDto } from './dto/login.dto';
 import * as bcrypt from 'bcryptjs';
 import { OtpService } from 'src/otp/otp.service';
 import { OtpType } from 'src/otp/enums/otp-enum';
+import { IAuthStrategy } from './interfaces/auth-strategy.interface';
+import { RefreshTokenRepository } from './refresh-token.repository';
 
 @Injectable()
 export class AuthService {
   constructor(
     private usersService: UsersService,
     private jwtService: JwtService,
-    private otpService: OtpService
+    private otpService: OtpService,
+    private refreshTokenRepository: RefreshTokenRepository,
+    @Inject('AUTH_STRATEGIES') private readonly strategies: IAuthStrategy[],
   ) { }
-
-  async signIn(
-    email: string,
-    pass: string,
-  ): Promise<{ access_token: string }> {
-    const user = await this.usersService.findOneByEmail(email);
-    if (user?.password !== pass) {
-      throw new UnauthorizedException();
-    }
-    const payload = { sub: user.userId, username: user.username };
-    return {
-      // 💡 Here the JWT secret key that's used for signing the payload 
-      // is the key that was passed in the JwtModule
-      access_token: await this.jwtService.signAsync(payload),
-    };
-  }
 
   async validateUser(username: string, pass: string): Promise<any> {
     return "";
   }
 
   async login(dto: LoginDto) {
-    try {
-      const { email, password, otp } = dto;
+    const strategy = this.strategies.find((s) => s.supports(dto));
 
-      const user = await this.usersService.findOneByEmail(email);
-
-      if (!user) {
-        throw new UnauthorizedException('Invalid credentials');
-      }
-
-      const isPasswordValid = await bcrypt.compare(password, user.password);
-
-      if (!isPasswordValid) {
-        throw new UnauthorizedException('Invalid credentials');
-      }
-
-      if (!user.isVerified) {
-        if (!otp) {
-          return {
-            message: 'Account not verified. Please provide OTP for verification.',
-            requiresOtp: true
-          };
-        }
-        await this.verifyOtp(user.id, otp, OtpType.OTP);
-      }
-
-      const payload = { id: user.id, email: user.email };
-      const accessToken = await this.jwtService.signAsync(payload);
-
-      return {
-        accessToken,
-        userId: user.id,
-        email: user.email
-      };
+    if (!strategy) {
+      throw new BadRequestException(
+        'Could not determine login method. Provide email + password or phone + otp.',
+      );
     }
-    catch (error) {
-      if (error instanceof UnauthorizedException ||
-        error instanceof BadRequestException
-      ) {
-        throw error;
+
+    const user = await strategy.validate(dto);
+
+    if (!user.isVerified) {
+      if (!dto.otp) {
+        return {
+          requiresOtp: true,
+          message: 'Account not verified. Please provide OTP for verification.',
+        };
       }
-      throw new BadRequestException(error);
+      await this.verifyOtp(user.id, dto.otp, OtpType.OTP);
     }
+
+    // return this.issueTokenPair(user.id, user.email);
   }
+
+  async refreshToken(resfreshToken: string) {
+    const tokenHash = this.refreshTokenRepository.hashToken(resfreshToken);
+    const storedToken = await this.refreshTokenRepository.findByTokenHash(tokenHash);
+  }
+  // async login(dto: LoginDto) {
+  //   try {
+  //     const { email, password, otp } = dto;
+
+  //     const user = await this.usersService.findOneByEmail(email);
+
+  //     if (!user) {
+  //       throw new UnauthorizedException('Invalid credentials');
+  //     }
+
+  //     const isPasswordValid = await bcrypt.compare(password, user.password);
+
+  //     if (!isPasswordValid) {
+  //       throw new UnauthorizedException('Invalid credentials');
+  //     }
+
+  //     if (!user.isVerified) {
+  //       if (!otp) {
+  //         return {
+  //           message: 'Account not verified. Please provide OTP for verification.',
+  //           requiresOtp: true
+  //         };
+  //       }
+  //       await this.verifyOtp(user.id, otp, OtpType.OTP);
+  //     }
+
+  //     const payload = { id: user.id, email: user.email };
+  //     const accessToken = await this.jwtService.signAsync(payload);
+
+  //     return {
+  //       accessToken,
+  //       userId: user.id,
+  //       email: user.email
+  //     };
+  //   }
+  //   catch (error) {
+  //     if (error instanceof UnauthorizedException ||
+  //       error instanceof BadRequestException
+  //     ) {
+  //       throw error;
+  //     }
+  //     throw new BadRequestException(error);
+  //   }
+  // }
 
   async verifyOtp(userId: number, otp: string, otpType: OtpType) {
     await this.otpService.validateOtp(userId, otp, otpType);

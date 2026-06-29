@@ -1,18 +1,21 @@
-import { UserEntity } from "src/users/entities/users.entity";
-import { Column, Entity, ManyToOne, PrimaryGeneratedColumn } from "typeorm";
-
+import { UserEntity } from 'src/users/entities/users.entity';
+import { Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
 
 @Entity('refresh_tokens')
 export class RefreshTokenEntity {
     @PrimaryGeneratedColumn()
     id: number;
 
-    @Column()
-    tokenHash: string; // bcrypt hash
+    @Column({ unique: true })
+    tokenHash: string;
 
     @Column()
     expiresAt: Date;
 
+    @Column()
+    userId: number;
+
     @ManyToOne(() => UserEntity, { onDelete: 'CASCADE' })
+    @JoinColumn({ name: 'userId' })
     user: UserEntity;
 }
