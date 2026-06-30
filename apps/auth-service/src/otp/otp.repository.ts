@@ -34,7 +34,22 @@ export class OtpRepository {
         return validToken;
     }
 
-    // async delete(id: number) {
-    //     return this.otpRepository.delete(id);
-    // }
+    async countRecentByUser(
+        userId: number,
+        type: OtpType,
+        windowMinutes: number,
+    ): Promise<number> {
+        const since = new Date(Date.now() - windowMinutes * 60 * 1000);
+        return this.otpRepository.count({
+            where: {
+                userId,
+                type,
+                createdAt: MoreThan(since),
+            },
+        });
+    }
+
+    async deleteById(id: number): Promise<void> {
+        await this.otpRepository.delete(id);
+    }
 }
