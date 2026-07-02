@@ -36,15 +36,11 @@ export class UsersService {
 
         await this.emailVerification(recepient, OtpType.OTP);
 
-        // Generate OTP
-
-
-        // return {
-        //     message: 'Registration successful. Please verify your email.',
-        //     userId: newUser.id,
-        //     email: newUser.email,
-        //     otp: plainOtp, // For testing purposes only. Remove in production.
-        // };
+        return {
+            message: 'Registration successful. Please verify your email.',
+            userId: newUser.id,
+            email: newUser.email,
+        };
     }
 
     async emailVerification(recepient: OtpRecipient, otpType: OtpType) {
@@ -57,7 +53,6 @@ export class UsersService {
                 subject: 'OTP for Email Verification',
                 html: `<p>Your OTP is: <strong>${plainOtp}</strong></p>`,
             }
-            //send otp via email
             return await this.mailerService.sendEmail(emailDto);
         }
         else if (otpType === OtpType.RESET_LINK) {
@@ -68,37 +63,14 @@ export class UsersService {
                 subject: 'Password Reset Link',
                 html: `<p>Your reset link is: <strong>${resetLink}</strong></p>`,
             }
-            //send otp via email
             return await this.mailerService.sendEmail(emailDto);
         }
     }
-
-    // async verifyOtp(dto: VerifyOtpDto) {
-    //     const user = await this.usersRepository.findOneByEmail(dto.email);
-    //     if (!user) {
-    //         throw new BadRequestException('User not found');
-    //     }
-
-    //     const isValid = await this.otpService.verifyOtp(user.id, dto.otp, OtpType.OTP);
-
-    //     if (!isValid) {
-    //         throw new BadRequestException('Invalid or expired OTP');
-    //     }
-
-    //     // Mark as verified
-    //     await this.usersRepository.markAsVerified(user.id);
-
-    //     return {
-    //         message: 'Account verified successfully',
-    //         userId: user.id,
-    //     };
-    // }
 
     async updateUser(userId: number, updateData: Partial<UpdateUserDto>) {
         return this.usersRepository.update(userId, updateData);
     }
 
-    // Helper for future login
     async findOneByEmail(email: string) {
         return this.usersRepository.findOneByEmail(email);
     }

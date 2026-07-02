@@ -13,12 +13,15 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { UsersModule } from 'src/users/users.module';
 import { AuthController } from './auth.controller';
 import { OtpModule } from 'src/otp/otp.module';
+import { EmailAuthStrategy } from './strategies/email-auth.strategy';
+import { PhoneAuthStrategy } from './strategies/phone-auth.strategy';
+import { AUTH_STRATEGIES } from './interfaces/auth-strategy.interface';
+import { RefreshTokenRepository } from './refresh-token.repository';
+import { JwtAuthGuard } from './guards/jwt-auth.guard';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([RefreshTokenEntity]),
-    UsersModule,
-    OtpModule,
     JwtModule.registerAsync({
       useFactory: (config: ConfigService) => ({
         secret: config.get('JWT_SECRET'),
@@ -28,9 +31,23 @@ import { OtpModule } from 'src/otp/otp.module';
     }),
     PassportModule.register({ defaultStrategy: 'jwt' }),
     CacheModule.register({ store: redisStore, ttl: 60 * 60 * 24 * 7 }),
+    UsersModule,
+    OtpModule,
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy, LocalStrategy, /*OtpService*/],
+  providers: [
+    EmailAuthStrategy,
+    PhoneAuthStrategy,
+    {
+      provide: AUTH_STRATEGIES,
+      useFactory: (email: EmailAuthStrategy, phone: PhoneAuthStrategy) => [email, phone],
+      inject: [EmailAuthStrategy, PhoneAuthStrategy],
+    },
+    AuthService,
+    RefreshTokenRepository,
+    JwtStrategy,
+    LocalStrategy,
+    JwtAuthGuard,],
   exports: [AuthService, JwtModule],
 })
 export class AuthModule { }

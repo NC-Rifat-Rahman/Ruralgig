@@ -32,12 +32,10 @@ export class RefreshTokenRepository {
         await this.repo.delete(id);
     }
 
-    /** Logout from all devices. */
     async deleteByUserId(userId: number): Promise<void> {
         await this.repo.delete({ userId });
     }
 
-    /** Housekeeping — call from a scheduled job. */
     async deleteExpired(): Promise<void> {
         await this.repo.delete({ expiresAt: LessThan(new Date()) });
     }
