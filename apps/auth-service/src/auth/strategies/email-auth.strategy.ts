@@ -2,7 +2,7 @@ import { Injectable, UnauthorizedException } from "@nestjs/common";
 import { IAuthStrategy, LoginCredentials } from "../interfaces/auth-strategy.interface";
 import { UsersService } from "src/users/users.service";
 import { UserEntity } from "src/users/entities/users.entity";
-import bcrypt from "bcryptjs/umd/types";
+import bcrypt from "bcryptjs";
 
 @Injectable()
 export class EmailAuthStrategy implements IAuthStrategy {
@@ -24,7 +24,6 @@ export class EmailAuthStrategy implements IAuthStrategy {
         if (!isPasswordValid) {
             throw new UnauthorizedException('Invalid credentials');
         }
-
         return user;
     }
 }
