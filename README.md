@@ -75,7 +75,7 @@ RuralGig is a **NestJS microservices monorepo** (Turborepo) where each service o
   │  service   │ │  service   │ │   service      │
   └────────────┘ └────────────┘ └────────────────┘
                                 ┌────────────────┐
-                                │   ai-service   │  ← Claude API
+                                │   ai-service   │
                                 └────────────────┘
 ```
 
