@@ -2,7 +2,7 @@
 
 **AI-powered micro-freelance platform connecting skilled workers in rural and underserved communities with businesses that need short-term task help.**
 
-> Built with Node.js · NestJS · TypeScript · PostgreSQL · Redis · RabbitMQ · Next.js · Claude API
+> Built with Node.js · NestJS · TypeScript · PostgreSQL · Redis · RabbitMQ · Next.js
 
 ---
 
