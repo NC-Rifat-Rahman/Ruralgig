@@ -10,6 +10,13 @@ export class CreateTaskHandler {
     async execute(command: CreateTaskCommand) {
         const { businessId, dto } = command;
 
+        const currentDate = new Date();
+
+        if (dto.deadline && new Date(dto.deadline) < currentDate) {
+            throw new BadRequestException("Deadline cannot be in the past.");
+        }
+
+        // title, budget,skill,deadline
         let saveTask;
 
         if (!dto.requiredSkills || dto.requiredSkills.length === 0) {
