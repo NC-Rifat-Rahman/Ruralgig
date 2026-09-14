@@ -23,6 +23,10 @@ export class CreateTaskHandler {
             throw new BadRequestException("A task requires at least one skill.");
         }
 
+        if (!dto.latitude || !dto.longitude) {
+            throw new BadRequestException("Latitude and Longitude are required.");
+        }
+
         await this.taskRepository.save(saveTask);
         return saveTask;
     }

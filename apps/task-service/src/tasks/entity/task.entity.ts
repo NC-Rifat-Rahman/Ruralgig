@@ -21,6 +21,12 @@ export class TaskEntity {
     @Column({ type: 'simple-array' })
     deliverables: string[] | null;
 
+    @Column('double precision', { precision: 10, scale: 7 })
+    latitude: number;
+
+    @Column('double precision', { precision: 10, scale: 7 })
+    longitude: number;
+
     @CreateDateColumn({ type: 'timestamptz' })
     createdAt: Date;
 
