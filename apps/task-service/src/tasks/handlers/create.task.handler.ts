@@ -27,6 +27,10 @@ export class CreateTaskHandler {
             throw new BadRequestException("Latitude and Longitude are required.");
         }
 
+        if(dto.budgetAmount < 100 || dto.budgetAmount > 1000000) {
+            throw new BadRequestException("Budget amount must be between 100 and 1,000,000.");
+        }
+
         await this.taskRepository.save(saveTask);
         return saveTask;
     }
