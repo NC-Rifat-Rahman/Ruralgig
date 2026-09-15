@@ -2,6 +2,7 @@ import {
     ArrayMaxSize,
     ArrayMinSize,
     IsArray,
+    IsBoolean,
     IsIn,
     IsInt,
     IsISO8601,
@@ -50,6 +51,9 @@ export class CreateTaskDto {
 
     @IsISO8601()
     deadline: string;
+
+    @IsBoolean()
+    isRemote: boolean;
 
     @IsNumber()
     @Min(-90, { message: 'Latitude must be between -90 and 90' })
