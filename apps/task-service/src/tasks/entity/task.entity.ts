@@ -1,6 +1,5 @@
 import { Column, CreateDateColumn, Entity, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
 
-
 @Entity('tasks')
 export class TaskEntity {
     @PrimaryGeneratedColumn()
@@ -21,10 +20,10 @@ export class TaskEntity {
     @Column({ type: 'simple-array' })
     deliverables: string[] | null;
 
-    @Column('double precision', { precision: 10, scale: 7 })
+    @Column('double precision')
     latitude: number;
 
-    @Column('double precision', { precision: 10, scale: 7 })
+    @Column('double precision')
     longitude: number;
 
     @CreateDateColumn({ type: 'timestamptz' })

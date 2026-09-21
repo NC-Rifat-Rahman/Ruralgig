@@ -20,9 +20,6 @@ export class CreateTaskHandler {
             throw new BadRequestException("Deadline must be at least 24 hours from now.");
         }
 
-        // title, budget,skill,deadline
-        let saveTask;
-
         if (!dto.requiredSkills || dto.requiredSkills.length === 0) {
             throw new BadRequestException("A task requires at least one skill.");
         }
@@ -36,6 +33,20 @@ export class CreateTaskHandler {
         if (dto.budgetAmount < 100 || dto.budgetAmount > 1000000) {
             throw new BadRequestException("Budget amount must be between 100 and 1,000,000.");
         }
+
+        const saveTask = {
+            businessId,
+            title: dto.title,
+            description: dto.description,
+            requiredSkills: dto.requiredSkills,
+            budgetAmount: dto.budgetAmount,
+            isRemote: dto.isRemote,
+            latitude: dto.latitude,
+            longitude: dto.longitude,
+            deadline: dto.deadline,
+            createdAt: currentDate,
+            updatedAt: currentDate,
+        } as any;
 
         /* TODO: 
         
