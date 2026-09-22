@@ -8,7 +8,7 @@ export class CreateTaskHandler {
     constructor(private readonly taskRepository: TaskRepository) { }
 
     async execute(command: CreateTaskCommand) {
-        const { businessId, dto } = command;
+        const { /*businessId,*/ dto } = command;
 
         const currentDate = new Date();
 
@@ -35,7 +35,7 @@ export class CreateTaskHandler {
         }
 
         const saveTask = {
-            businessId,
+            // businessId,
             title: dto.title,
             description: dto.description,
             requiredSkills: dto.requiredSkills,

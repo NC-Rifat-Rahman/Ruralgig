@@ -18,12 +18,12 @@ import {
 
 export class CreateTaskDto {
     @IsString()
-    @MinLength(10)
+    @MinLength(5)
     @MaxLength(200)
     title: string;
 
     @IsString()
-    @MinLength(20)
+    @MinLength(10)
     description: string;
 
     @IsArray()
@@ -58,10 +58,10 @@ export class CreateTaskDto {
     @IsNumber()
     @Min(-90, { message: 'Latitude must be between -90 and 90' })
     @Max(90, { message: 'Latitude must be between -90 and 90' })
-    latitude: number;
+    latitude?: number;
 
     @IsNumber()
     @Min(-180, { message: 'Longitude must be between -180 and 180' })
     @Max(180, { message: 'Longitude must be between -180 and 180' })
-    longitude: number;
+    longitude?: number;
 }

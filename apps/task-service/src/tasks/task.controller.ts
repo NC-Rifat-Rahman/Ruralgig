@@ -11,6 +11,6 @@ export class TaskController {
 
     @Post('create')
     async createTask(user: any, @Body() dto: CreateTaskDto) {
-        return this.commandBus.execute(new CreateTaskCommand(user.id, dto));
+        return this.commandBus.execute(new CreateTaskCommand(/*user.id,*/ dto));
     }
 }

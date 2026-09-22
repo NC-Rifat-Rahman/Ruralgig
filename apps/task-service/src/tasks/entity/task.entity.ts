@@ -6,7 +6,7 @@ export class TaskEntity {
     id: number;
 
     @Column()
-    businessId: number;
+    businessId?: number; // make it mandatory in the future when we have business management
 
     @Column({ type: 'varchar', length: 255 })
     title: string;
